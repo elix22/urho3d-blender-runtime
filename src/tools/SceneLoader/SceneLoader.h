@@ -73,12 +73,21 @@ private:
 
     void UpdateCameras();
 
+    void CreateScreenshot();
+
+    void HandleRequestFromBlender(const JSONObject& json);
+
     String sceneName;
     Vector<String> runtimeFlags;
     String exportPath;
+    String additionalResourcePath;
     String customUI;
 
     int currentCamId;
     bool updatedCamera;
     PODVector<Camera*> cameras;
+
+    float screenshotTimer;
+    float screenshotInterval;
+    bool automaticIntervallScreenshots;
 };
