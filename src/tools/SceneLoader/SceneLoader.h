@@ -23,6 +23,8 @@
 #pragma once
 
 #include <Sample.h>
+#include<Urho3D/AngelScript/Script.h>
+#include<Urho3D/Urho3DAll.h>
 
 namespace Urho3D
 {
@@ -32,6 +34,43 @@ class Node;
 class Scene;
 
 }
+
+class ViewRenderer{
+public:
+    ViewRenderer(Context* ctx,int id, Scene* initialScene, int width,int height,float fov);
+    void SetSize(int width,int height,float fov);
+    void SetScene(Scene* scene);
+    void SetViewMatrix(const Matrix4& vmat);
+    void SetViewMatrix(const Vector3& t,const Vector3& r,const Vector3& s);
+    void SetOrthoMode(const Matrix4& vmat,float size_);
+    void SetPerspMode(const Matrix4& vmat);
+    void SetViewData(bool orthoMode,const Vector3& pos,const Vector3& dir,const Vector3& up,float orthosize, float fov);
+    inline SharedPtr<Texture2D> GetRenderTexture(){ return renderTexture_;}
+    inline int GetId() { return viewId_;}
+    inline SharedPtr<Scene> GetScene() { return currentScene_; }
+    inline SharedPtr<Camera> GetCamera() { return viewportCamera_;}
+    inline SharedPtr<Viewport> GetViewport() { return viewport_;}
+    const String& GetNetId() { return netId; }
+    void RequestRender();
+    void Show();
+        float fov_;
+private:
+
+    String netId;
+    int viewId_;
+    int width_;
+    int height_;
+    float orthosize_;
+    bool orthoMode_;
+
+    Context* ctx_;
+    SharedPtr<Scene> currentScene_;
+    SharedPtr<RenderSurface> renderSurface_;
+    SharedPtr<Texture2D> renderTexture_;
+    SharedPtr<Viewport> viewport_;
+    SharedPtr<Node> viewportCameraNode_;
+    SharedPtr<Camera> viewportCamera_;
+};
 
 /// Scene & UI load example.
 /// This sample demonstrates:
@@ -48,6 +87,7 @@ public:
 
     /// Setup after engine initialization and before running the main loop.
     void Start() override;
+    void Stop() override;
 
 private:
     /// Construct the scene content.
@@ -56,6 +96,7 @@ private:
     void CreateUI();
     /// Set up a viewport for displaying the scene.
     void SetupViewport();
+
     /// Subscribe to application-wide logic update event.
     void SubscribeToEvents();
     /// Reads input and moves the camera.
@@ -70,15 +111,64 @@ private:
     void HandleUpdate(StringHash eventType, VariantMap& eventData);
 
     void HandleFileChanged(StringHash eventType, VariantMap& eventData);
+    /// Handle reload start of the script file.
+    void HandleScriptReloadStarted(StringHash eventType, VariantMap& eventData);
+    /// Handle reload success of the script file.
+    void HandleScriptReloadFinished(StringHash eventType, VariantMap& eventData);
+    /// Handle reload failure of the script file.
+    void HandleScriptReloadFailed(StringHash eventType, VariantMap& eventData);
+    void HandleAfterRender(StringHash eventType, VariantMap& eventData);
 
+    void HandleBlenderMSG(StringHash eventType, VariantMap& eventData);
+
+
+    void HandleRequestFromBlender(const JSONObject &json);
     void UpdateCameras();
+    void EnsureLight(Scene* scene);
+
+
+    Scene* GetScene(const String& sceneName);
+    ViewRenderer* GetViewRenderer(int viewId);
+    ViewRenderer* CreateViewRenderer(Context* ctx, Scene* scene, int width, int height);
+    void UpdateViewRenderer(ViewRenderer* renderer);
+
+    void InitEditor();
+
+    void ChangeFov(float delta);
+  //  void CreateScreenshot();
+
+  //  void HandleRequestFromBlender(const JSONObject& json);
+//    void HandleRequestFromEngineToBlender();
 
     String sceneName;
     Vector<String> runtimeFlags;
     String exportPath;
+    String additionalResourcePath;
     String customUI;
 
     int currentCamId;
+    int showViewportId;
     bool updatedCamera;
     PODVector<Camera*> cameras;
+
+    Camera* blenderViewportCamera;
+    Node* blenderViewportCameraNode;
+
+    bool editorVisible_;
+    /// Script file.
+    SharedPtr<ScriptFile> scriptFile_;
+    float screenshotTimer;
+    float screenshotInterval;
+    bool automaticIntervallScreenshots;
+
+    bool rtRenderRequested;
+    RenderSurface* surface;
+    SharedPtr<Texture2D> rtTexture;
+
+    HashMap<StringHash,Scene*> scenes_;
+    HashMap<int,ViewRenderer*> viewRenderers;
+    HashSet<ViewRenderer*> updatedRenderers;
+    ViewRenderer* currentViewRenderer;
+
+    JSONFile jsonfile_;
 };
